@@ -30,3 +30,4 @@ finally {
     Stop-Process -Id $proc.Id -Force
     Write-Host "Server stopped successfully."
 }
+
