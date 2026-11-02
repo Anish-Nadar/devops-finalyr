@@ -75,3 +75,4 @@ Phase 9 delivers automated End-to-End (E2E) browser verification for the Maratho
 - [src/test/java/com/marathon/selenium/RegistrationSeleniumTest.java](file:///C:/Users/Admin/Desktop/Projects/devops/src/test/java/com/marathon/selenium/RegistrationSeleniumTest.java)
 - [src/test/java/com/marathon/controller/RegistrationControllerTest.java](file:///C:/Users/Admin/Desktop/Projects/devops/src/test/java/com/marathon/controller/RegistrationControllerTest.java)
 - [docs/09_selenium_test_design_and_execution.md](file:///C:/Users/Admin/Desktop/Projects/devops/docs/09_selenium_test_design_and_execution.md)
+

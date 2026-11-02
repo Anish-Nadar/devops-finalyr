@@ -14,10 +14,6 @@ pipeline {
         JAVA_HOME = "C:\\Program Files\\BellSoft\\LibericaJDK-21"
     }
 
-    tools {
-        // Inherits JDK 21 and Maven runtime
-    }
-
     stages {
         stage('Checkout SCM') {
             steps {
@@ -42,12 +38,12 @@ pipeline {
             }
         }
 
-        stage('Execute Unit & Component Tests') {
+        stage('Unit & Integration Testing') {
             steps {
                 echo "=========================================================="
-                echo "Stage 3: Running Unit and Regression Tests"
+                echo "Stage 3: Running Unit and MockMvc Integration Tests"
                 echo "=========================================================="
-                bat 'call .\\mvnw.cmd test -Dtest=MarathonApplicationTests'
+                bat 'call .\\mvnw.cmd test -Dtest=MarathonApplicationTests,RegistrationControllerTest'
             }
             post {
                 always {
@@ -56,10 +52,25 @@ pipeline {
             }
         }
 
+        stage('Automated Selenium E2E Testing') {
+            steps {
+                echo "=========================================================="
+                echo "Stage 4: Running Automated Headless Chrome Selenium E2E Suite"
+                echo "=========================================================="
+                bat 'call .\\mvnw.cmd test -Dtest=RegistrationSeleniumTest'
+            }
+            post {
+                always {
+                    junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
+                    archiveArtifacts artifacts: 'screenshots/*.png', allowEmptyArchive: true
+                }
+            }
+        }
+
         stage('Package Executable JAR') {
             steps {
                 echo "=========================================================="
-                echo "Stage 4: Packaging Standalone Executable Artifact"
+                echo "Stage 5: Packaging Standalone Executable Artifact"
                 echo "=========================================================="
                 bat 'call .\\mvnw.cmd package -DskipTests=true'
             }
@@ -76,7 +87,7 @@ pipeline {
             }
             steps {
                 echo "=========================================================="
-                echo "Stage 5: Deploying ${env.APP_NAME} to ${params.DEPLOY_ENV}"
+                echo "Stage 6: Deploying ${env.APP_NAME} to ${params.DEPLOY_ENV}"
                 echo "Port: ${params.SERVER_PORT}"
                 echo "=========================================================="
                 script {
@@ -95,14 +106,11 @@ pipeline {
             echo "=========================================================="
         }
         success {
-            echo "SUCCESS: Marathon Registration Portal deployed successfully!"
-            echo "Application URL: http://localhost:${params.SERVER_PORT}/"
-            echo "Admin Portal:    http://localhost:${params.SERVER_PORT}/admin"
-            echo "Health Probe:    http://localhost:${params.SERVER_PORT}/health"
+            echo "QUALITY GATE PASSED: All Unit, MockMvc, and Selenium E2E Tests Succeeded."
+            echo "Marathon Registration Portal deployed successfully to http://localhost:${params.SERVER_PORT}/"
         }
         failure {
-            echo "FAILURE: Build or Deployment stage encountered an error."
+            echo "QUALITY GATE FAILED: One or more test suites failed. Deployment is blocked."
         }
     }
 }
-
