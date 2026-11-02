@@ -1,0 +1,11 @@
+.git
+.gitignore
+.github/
+target/classes
+target/generated-sources
+target/surefire-reports
+screenshots/
+.idea/
+*.log
+docs/
+
