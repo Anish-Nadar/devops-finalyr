@@ -1,0 +1,26 @@
+# Global Application Variables & Secret Placeholders
+app_name: marathon-registration-portal
+app_version: 1.0.0
+app_port: 8080
+deploy_environment: production
+
+# Directory layout
+app_home: /opt/marathon-portal
+config_dir: "{{ app_home }}/config"
+log_dir: "/var/log/marathon-portal"
+data_dir: "{{ app_home }}/data"
+
+# Runtime constraints
+jvm_max_memory: 512m
+jvm_min_memory: 256m
+jvm_flags: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"
+
+# Health Check & Quality Gate
+healthcheck_url: "http://localhost:{{ app_port }}/health"
+healthcheck_retries: 10
+healthcheck_delay: 3
+
+# Security & Secrets (Masked / Environment Injected)
+db_username: "marathon_admin"
+db_password: "vault_encrypted_supersecret_token_2026"
+jwt_secret_key: "vault_encrypted_marathon_jwt_signing_key_global"
