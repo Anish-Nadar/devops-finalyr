@@ -60,3 +60,4 @@ public class ParticipantApiController {
         return ResponseEntity.ok(health);
     }
 }
+

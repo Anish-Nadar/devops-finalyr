@@ -31,3 +31,4 @@ All core functional capabilities outlined in the project plan and SRS are now fu
 - Tagged release baseline: `v1.0.0-mvp`.
 - Merged `develop` into `main` using `--no-ff` to establish a release-ready production baseline.
 - Synchronized all branches (`main`, `develop`, `feature/admin-status-workflow`) and tags to GitHub.
+
