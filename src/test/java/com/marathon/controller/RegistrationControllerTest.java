@@ -24,6 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 public class RegistrationControllerTest {
+    @org.junit.jupiter.api.Test
+    void testDeliberateDefectForQualityGate() { org.junit.jupiter.api.Assertions.fail("DELIBERATE TEST FAILURE: CI quality gate must abort build before packaging or deployment!"); }
 
     @Autowired
     private MockMvc mockMvc;
