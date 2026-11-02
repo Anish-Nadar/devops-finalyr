@@ -83,3 +83,4 @@ HTTP Status: 200 OK
 - Pipeline definition: [Jenkinsfile](file:///C:/Users/Admin/Desktop/Projects/devops/Jenkinsfile)
 - Automated verification script: [scripts/test_deployment.ps1](file:///C:/Users/Admin/Desktop/Projects/devops/scripts/test_deployment.ps1)
 - Pipeline Job XML: `C:\ProgramData\Jenkins\.jenkins\jobs\marathon-portal-pipeline\config.xml`
+
