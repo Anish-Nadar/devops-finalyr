@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marathon Registration Portal 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        :root {
+            --marathon-primary: #0d6efd;
+            --marathon-dark: #1a252f;
+            --marathon-accent: #ff6b35;
+        }
+        body {
+            background-color: #f4f6f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .hero-banner {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 3.5rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 4px solid var(--marathon-accent);
+        }
+        .category-card {
+            border: none;
+            border-radius: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .category-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            border: none;
+            padding: 2.5rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+        }
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold text-uppercase" href="/">
+            <i class="bi bi-person-walking text-warning me-2"></i>City Marathon 2026
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active fw-semibold" href="/"><i class="bi bi-pencil-square me-1"></i>Register</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold" href="/status" id="navStatusLink"><i class="bi bi-search me-1"></i>Track Status</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold text-warning" href="/admin" id="navAdminLink"><i class="bi bi-shield-lock me-1"></i>Admin Portal</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<div class="hero-banner text-center">
+    <div class="container">
+        <span class="badge bg-warning text-dark text-uppercase px-3 py-2 mb-2 fw-bold">Official Registration</span>
+        <h1 class="display-4 fw-bold">Annual City Marathon 2026</h1>
+        <p class="lead mb-3">Push your limits across scenic city routes. Register today to secure your official bib number!</p>
+        <p class="mb-0 text-white-50"><i class="bi bi-calendar-event me-2"></i>Race Day: December 15, 2026 | <i class="bi bi-geo-alt me-2"></i>City Sports Arena</p>
+    </div>
+</div>
+
+<div class="container mb-5">
+
+    <!-- Categories Overview -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6" th:each="cat : ${categories}">
+            <div class="card category-card h-100 p-3 text-center border-top border-4 border-primary">
+                <h5 class="fw-bold mb-1" th:text="${cat.displayName}">Category</h5>
+                <p class="text-primary fw-bold mb-1" th:text="${cat.distance}">Distance</p>
+                <small class="text-muted">Minimum Age: <strong th:text="${cat.minimumAge} + '+'">18+</strong></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert" id="errorAlert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${errorMessage}">Error message</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Registration Form -->
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="form-card">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="bg-primary text-white rounded-circle p-3 me-3">
+                        <i class="bi bi-clipboard-check fs-3"></i>
+                    </div>
+                    <div>
+                        <h3 class="fw-bold mb-0">Participant Registration Form</h3>
+                        <p class="text-muted mb-0">Complete all required fields below to reserve your marathon entry.</p>
+                    </div>
+                </div>
+
+                <form th:action="@{/register}" th:object="${participant}" method="post" id="registrationForm" novalidate>
+
+                    <!-- Section: Personal Info -->
+                    <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-person me-2"></i>Personal Details</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="fullName" class="form-label required">Full Name</label>
+                            <input type="text" class="form-control" id="fullName" th:field="*{fullName}" 
+                                   placeholder="e.g. Jordan Lee" required th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">Invalid name</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="email" class="form-label required">Email Address</label>
+                            <input type="email" class="form-control" id="email" th:field="*{email}" 
+                                   placeholder="runner@example.com" required th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Invalid email</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="age" class="form-label required">Age</label>
+                            <input type="number" class="form-control" id="age" th:field="*{age}" 
+                                   placeholder="25" min="10" max="99" required th:classappend="${#fields.hasErrors('age')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('age')}" th:errors="*{age}">Invalid age</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="gender" class="form-label required">Gender</label>
+                            <select class="form-select" id="gender" th:field="*{gender}" required th:classappend="${#fields.hasErrors('gender')} ? 'is-invalid' : ''">
+                                <option value="">-- Select Gender --</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Non-Binary">Non-Binary</option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}">Please select gender</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="category" class="form-label required">Race Category</label>
+                            <select class="form-select" id="category" th:field="*{category}" required th:classappend="${#fields.hasErrors('category')} ? 'is-invalid' : ''">
+                                <option value="">-- Select Race Event --</option>
+                                <option th:each="cat : ${categories}" th:value="${cat}" 
+                                        th:text="${cat.displayName + ' (' + cat.distance + ' - Age ' + cat.minimumAge + '+)'}">
+                                </option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('category')}" th:errors="*{category}">Please select category</div>
+                        </div>
+                    </div>
+
+                    <!-- Section: Emergency Contact -->
+                    <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-shield-plus me-2"></i>Emergency Contact & Medical Details</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="emergencyName" class="form-label required">Emergency Contact Person</label>
+                            <input type="text" class="form-control" id="emergencyName" th:field="*{emergencyName}" 
+                                   placeholder="e.g. Morgan Lee (Spouse/Parent)" required th:classappend="${#fields.hasErrors('emergencyName')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('emergencyName')}" th:errors="*{emergencyName}">Contact person required</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="emergencyPhone" class="form-label required">Emergency Contact Phone</label>
+                            <input type="tel" class="form-control" id="emergencyPhone" th:field="*{emergencyPhone}" 
+                                   placeholder="+1-555-0199" required th:classappend="${#fields.hasErrors('emergencyPhone')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('emergencyPhone')}" th:errors="*{emergencyPhone}">Valid phone required</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="medicalDeclaration" class="form-label">Medical Conditions / Allergies (Optional)</label>
+                            <textarea class="form-control" id="medicalDeclaration" th:field="*{medicalDeclaration}" 
+                                      rows="2" placeholder="List any known allergies, chronic conditions, or medications for our medical team."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Section: Waiver Agreement -->
+                    <div class="card bg-light border-0 p-3 mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="waiverAccepted" th:field="*{waiverAccepted}" required>
+                            <label class="form-check-label fw-semibold" for="waiverAccepted">
+                                I confirm that I am medically fit to participate in the selected marathon event and accept the terms, liability waiver, and emergency medical treatment authorization.
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="/" class="btn btn-outline-secondary px-4 me-md-2">Reset Form</a>
+                        <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm" id="submitBtn">
+                            <i class="bi bi-check-circle-fill me-2"></i>Submit Registration
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-dark text-white text-center py-4 border-top border-secondary">
+    <div class="container">
+        <p class="mb-1 fw-bold">Marathon Registration Portal &copy; 2026</p>
+        <small class="text-white-50">Enterprise DevOps Pipeline Project | Built with Java 21, Spring Boot, Jenkins, Selenium, Docker, and Ansible</small>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

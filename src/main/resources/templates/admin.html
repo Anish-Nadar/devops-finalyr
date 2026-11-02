@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — City Marathon 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f8f9fc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+            border: none;
+            padding: 1.5rem;
+        }
+        .table-card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+            border: none;
+        }
+        .table th { font-weight: 600; font-size: 0.85rem; text-transform: uppercase; color: #6c757d; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold text-uppercase" href="/"><i class="bi bi-person-walking text-warning me-2"></i>City Marathon 2026</a>
+        <div class="navbar-nav ms-auto d-flex flex-row align-items-center gap-3">
+            <a class="nav-link text-white" href="/"><i class="bi bi-pencil-square me-1"></i>Registration Portal</a>
+            <a class="nav-link text-white" href="/status"><i class="bi bi-search me-1"></i>Status Tracker</a>
+            <span class="badge bg-danger px-3 py-2 text-uppercase"><i class="bi bi-shield-lock-fill me-1"></i>Race Coordinator Mode</span>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-4 my-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Participant Intake & Approval Dashboard</h2>
+            <p class="text-muted mb-0">Review submitted registrations, verify eligibility, approve entries, and issue official race bibs.</p>
+        </div>
+        <div class="text-end">
+            <span class="fs-4 fw-bold text-primary" id="totalParticipantsBadge" th:text="${totalCount}">0</span>
+            <small class="text-muted d-block">Total Registrations</small>
+        </div>
+    </div>
+
+    <!-- Category Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6" th:each="cat : ${categories}">
+            <div class="stat-card border-start border-4 border-primary">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small text-uppercase fw-bold" th:text="${cat.displayName}">Category</span>
+                        <h3 class="fw-bold my-1" th:text="${categoryCounts.get(cat)}">0</h3>
+                        <small class="text-success"><i class="bi bi-geo me-1"></i><span th:text="${cat.distance}"></span></small>
+                    </div>
+                    <div class="bg-light p-3 rounded-circle text-primary">
+                        <i class="bi bi-people-fill fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card table-card mb-4 p-3">
+        <form method="get" action="/admin" class="row g-3 align-items-end" id="filterForm">
+            <div class="col-md-4">
+                <label for="categoryFilter" class="form-label small fw-bold text-muted">Filter by Race Category</label>
+                <select class="form-select" id="categoryFilter" name="category">
+                    <option value="">-- All Categories --</option>
+                    <option th:each="cat : ${categories}" th:value="${cat}" 
+                            th:text="${cat.displayName}" th:selected="${cat == selectedCategory}"></option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="statusFilter" class="form-label small fw-bold text-muted">Filter by Approval Status</label>
+                <select class="form-select" id="statusFilter" name="status">
+                    <option value="">-- All Statuses --</option>
+                    <option th:each="st : ${statuses}" th:value="${st}" 
+                            th:text="${st.label}" th:selected="${st == selectedStatus}"></option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary px-4 fw-bold flex-grow-1" id="applyFiltersBtn">
+                    <i class="bi bi-funnel-fill me-1"></i>Apply Filters
+                </button>
+                <a href="/admin" class="btn btn-outline-secondary px-3">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Participants Table -->
+    <div class="card table-card">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="fw-bold mb-0"><i class="bi bi-table me-2"></i>Participant Roster (<span th:text="${#lists.size(participants)}" id="rosterCount"></span> entries)</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="participantTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>Registration ID</th>
+                        <th>Participant Name</th>
+                        <th>Email</th>
+                        <th>Category</th>
+                        <th>Age / Gender</th>
+                        <th>Emergency Contact</th>
+                        <th>Status</th>
+                        <th>Bib Number</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(participants)}">
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            No registration records match the selected criteria.
+                        </td>
+                    </tr>
+                    <tr th:each="p : ${participants}" th:id="'participantRow_' + ${p.id}">
+                        <td><span class="badge bg-secondary font-monospace" th:text="${p.registrationId}" th:id="'regId_' + ${p.id}">REG-ID</span></td>
+                        <td><strong th:text="${p.fullName}" th:id="'name_' + ${p.id}">Full Name</strong></td>
+                        <td><small th:text="${p.email}"></small></td>
+                        <td><span class="badge bg-info text-dark" th:text="${p.category.displayName}">Category</span></td>
+                        <td><span th:text="${p.age + ' / ' + p.gender}"></span></td>
+                        <td><small th:text="${p.emergencyName + ' (' + p.emergencyPhone + ')'}"></small></td>
+                        <td>
+                            <span th:classappend="'badge bg-' + ${p.status.badgeColor}" 
+                                  th:text="${p.status.label}" th:id="'status_' + ${p.id}">Status</span>
+                        </td>
+                        <td>
+                            <span th:if="${p.bibNumber != null}" class="badge bg-primary fs-6 font-monospace" 
+                                  th:text="${p.bibNumber}" th:id="'bib_' + ${p.id}">BIB</span>
+                            <span th:if="${p.bibNumber == null}" class="text-muted small">None</span>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <form th:action="@{'/admin/approve/' + ${p.id}}" method="post" style="display:inline;">
+                                    <button type="submit" class="btn btn-outline-success fw-bold" 
+                                            th:disabled="${p.status.name() == 'APPROVED'}" 
+                                            th:id="'approveBtn_' + ${p.id}">
+                                        <i class="bi bi-check-lg me-1"></i>Approve
+                                    </button>
+                                </form>
+                                <form th:action="@{'/admin/reject/' + ${p.id}}" method="post" style="display:inline;" class="ms-1">
+                                    <button type="submit" class="btn btn-outline-danger" 
+                                            th:disabled="${p.status.name() == 'REJECTED'}" 
+                                            th:id="'rejectBtn_' + ${p.id}">
+                                        <i class="bi bi-x-lg me-1"></i>Reject
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<footer class="bg-dark text-white text-center py-4 mt-5">
+    <div class="container">
+        <small class="text-white-50">City Marathon Admin Portal &copy; 2026</small>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

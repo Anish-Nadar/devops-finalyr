@@ -18,3 +18,4 @@ Closes # (issue number)
 - [ ] Selenium end-to-end tests pass (`mvn test -Dtest=*Selenium*`)
 - [ ] Docker image builds cleanly (`docker build -t marathon-portal .`)
 - [ ] Branch naming convention conforms to policy (`feature/*`, `bugfix/*`)
+
