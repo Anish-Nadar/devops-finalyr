@@ -85,3 +85,4 @@ gitGraph
 5. `git add .`
 6. `git commit -m "feat: initial project skeleton with Maven, Spring Boot, and DevOps documentation"`
 7. `git checkout -b develop`
+

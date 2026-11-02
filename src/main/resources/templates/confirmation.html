@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Confirmed — City Marathon 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .confirmation-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: none;
+            padding: 3rem;
+        }
+        .reg-badge {
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold text-uppercase" href="/"><i class="bi bi-person-walking text-warning me-2"></i>City Marathon 2026</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/">Home</a>
+            <a class="nav-link" href="/status">Track Status</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="confirmation-card text-center">
+                <div class="text-success mb-3">
+                    <i class="bi bi-check-circle-fill display-1"></i>
+                </div>
+                <h2 class="fw-bold text-dark mb-2">Registration Submitted Successfully!</h2>
+                <p class="text-muted mb-4">Your marathon application has been received and logged into the event registry.</p>
+
+                <div class="bg-light p-4 rounded-3 border mb-4">
+                    <small class="text-muted text-uppercase fw-bold d-block mb-1">Your Official Registration ID</small>
+                    <span class="badge bg-primary reg-badge fw-bold" id="confirmationRegId" th:text="${participant.registrationId}">REG-FM-123456</span>
+                    <p class="mt-2 mb-0 text-muted small"><i class="bi bi-info-circle me-1"></i>Please save this Registration ID to check your approval status and bib allocation.</p>
+                </div>
+
+                <div class="text-start bg-white border rounded p-4 mb-4">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2">Registration Summary</h5>
+                    <div class="row g-2">
+                        <div class="col-sm-6"><strong>Participant:</strong> <span th:text="${participant.fullName}" id="confirmName"></span></div>
+                        <div class="col-sm-6"><strong>Email:</strong> <span th:text="${participant.email}" id="confirmEmail"></span></div>
+                        <div class="col-sm-6"><strong>Race Event:</strong> <span th:text="${participant.category.displayName}" id="confirmCategory"></span></div>
+                        <div class="col-sm-6"><strong>Distance:</strong> <span th:text="${participant.category.distance}"></span></div>
+                        <div class="col-sm-6"><strong>Current Status:</strong> 
+                            <span class="badge bg-warning text-dark fw-bold" th:text="${participant.status.label}" id="confirmStatus"></span>
+                        </div>
+                        <div class="col-sm-6"><strong>Submission Date:</strong> <span th:text="${#temporals.format(participant.createdAt, 'yyyy-MM-dd HH:mm')}"></span></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="/status" class="btn btn-outline-primary px-4 fw-semibold"><i class="bi bi-search me-1"></i>Check Live Status</a>
+                    <a href="/" class="btn btn-primary px-4 fw-semibold"><i class="bi bi-plus-circle me-1"></i>Register Another Runner</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="bg-dark text-white text-center py-4 mt-5">
+    <div class="container">
+        <small class="text-white-50">City Marathon 2026 &copy; All Rights Reserved</small>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
