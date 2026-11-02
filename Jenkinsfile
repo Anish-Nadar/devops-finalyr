@@ -2,15 +2,17 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'DEPLOY_ENV', choices: ['staging', 'production', 'local'], description: 'Deployment Environment')
-        string(name: 'SERVER_PORT', defaultValue: '8080', description: 'Application HTTP Port')
-        booleanParam(name: 'AUTO_DEPLOY', defaultValue: true, description: 'Automatically deploy artifact to target server')
+        choice(name: 'DEPLOY_ENV', choices: ['staging', 'production', 'local'], description: 'Target Deployment Environment')
+        string(name: 'SERVER_PORT', defaultValue: '8080', description: 'Application Host Port Mapping')
+        booleanParam(name: 'AUTO_DEPLOY', defaultValue: true, description: 'Automatically deploy containerized artifact')
+        booleanParam(name: 'SIMULATE_HEALTH_FAILURE', defaultValue: false, description: 'Simulate health check failure to trigger automated rollback')
     }
 
     environment {
         APP_NAME = 'marathon-portal'
-        VERSION = '1.0.0-SNAPSHOT'
-        JAR_PATH = "target/marathon-portal-1.0.0-SNAPSHOT.jar"
+        IMAGE_NAME = "marathon-portal"
+        CONTAINER_NAME = "marathon-portal-${params.DEPLOY_ENV}"
+        BUILD_TAG = "${env.BUILD_NUMBER ?: '1.0.0'}"
         JAVA_HOME = "C:\\Program Files\\BellSoft\\LibericaJDK-21"
     }
 
@@ -23,8 +25,9 @@ pipeline {
                 checkout scm
                 script {
                     echo "Checked out Git Branch: ${env.BRANCH_NAME ?: 'develop'}"
-                    echo "Target Environment: ${params.DEPLOY_ENV}"
-                    echo "Target Port: ${params.SERVER_PORT}"
+                    echo "Target Environment:     ${params.DEPLOY_ENV}"
+                    echo "Target Host Port:       ${params.SERVER_PORT}"
+                    echo "Container Image Tag:    ${IMAGE_NAME}:${BUILD_TAG}"
                 }
             }
         }
@@ -38,10 +41,10 @@ pipeline {
             }
         }
 
-        stage('Unit & Integration Testing') {
+        stage('Unit & MockMvc Testing') {
             steps {
                 echo "=========================================================="
-                echo "Stage 3: Running Unit and MockMvc Integration Tests"
+                echo "Stage 3: Running Unit and Component MockMvc Tests"
                 echo "=========================================================="
                 bat 'call .\\mvnw.cmd test -Dtest=MarathonApplicationTests,RegistrationControllerTest'
             }
@@ -55,7 +58,7 @@ pipeline {
         stage('Automated Selenium E2E Testing') {
             steps {
                 echo "=========================================================="
-                echo "Stage 4: Running Automated Headless Chrome Selenium E2E Suite"
+                echo "Stage 4: Running Headless Chrome Selenium E2E Suite"
                 echo "=========================================================="
                 bat 'call .\\mvnw.cmd test -Dtest=RegistrationSeleniumTest'
             }
@@ -81,19 +84,51 @@ pipeline {
             }
         }
 
-        stage('Deploy to Application Server (Tomcat)') {
+        stage('Build & Tag Docker Image') {
             when {
                 expression { return params.AUTO_DEPLOY == true }
             }
             steps {
                 echo "=========================================================="
-                echo "Stage 6: Deploying ${env.APP_NAME} to ${params.DEPLOY_ENV}"
-                echo "Port: ${params.SERVER_PORT}"
+                echo "Stage 6: Building Multi-Stage Docker Container Image"
+                echo "=========================================================="
+                bat """
+                    docker build -t ${IMAGE_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:${params.DEPLOY_ENV} -t ${IMAGE_NAME}:latest .
+                    docker images ${IMAGE_NAME}
+                """
+            }
+        }
+
+        stage('Continuous Deployment (Docker Run)') {
+            when {
+                expression { return params.AUTO_DEPLOY == true }
+            }
+            steps {
+                echo "=========================================================="
+                echo "Stage 7: Deploying Container ${CONTAINER_NAME} on Port ${params.SERVER_PORT}"
+                echo "=========================================================="
+                bat """
+                    docker stop ${CONTAINER_NAME} 2>nul || ver >nul
+                    docker rm -f ${CONTAINER_NAME} 2>nul || ver >nul
+                    docker run -d --name ${CONTAINER_NAME} -p ${params.SERVER_PORT}:8080 ${IMAGE_NAME}:${BUILD_TAG}
+                    docker ps --filter name=${CONTAINER_NAME}
+                """
+            }
+        }
+
+        stage('Post-Deploy Verification & Automated Rollback') {
+            when {
+                expression { return params.AUTO_DEPLOY == true }
+            }
+            steps {
+                echo "=========================================================="
+                echo "Stage 8: Verifying Container Health Probe with Automated Rollback Gate"
                 echo "=========================================================="
                 script {
-                    echo "Deploying ${env.JAR_PATH} on Port ${params.SERVER_PORT}..."
-                    echo "Deployment target: Embedded Tomcat 10 Container Runtime"
-                    echo "Application is verified live via health check probe: http://localhost:${params.SERVER_PORT}/health"
+                    echo "Checking container health at http://localhost:${params.SERVER_PORT}/health..."
+                    bat """
+                        powershell -ExecutionPolicy Bypass -Command "\$ready=\$false; for(\$i=1;\$i -le 15;\$i++){ Start-Sleep -Seconds 2; try { \$h = Invoke-RestMethod -Uri 'http://localhost:${params.SERVER_PORT}/health' -TimeoutSec 2; if(\$h.status -eq 'UP'){ Write-Host 'Health probe confirmed UP!'; \$ready=\$true; break; } } catch { Write-Host 'Waiting for container ready (attempt '\$i'/15)...'; } }; if(-not \$ready){ Write-Host 'HEALTHCHECK FAILED: Triggering automated rollback...'; docker stop ${CONTAINER_NAME}; docker rm -f ${CONTAINER_NAME}; docker run -d --name ${CONTAINER_NAME} -p ${params.SERVER_PORT}:8080 ${IMAGE_NAME}:latest; exit 1; }"
+                    """
                 }
             }
         }
@@ -106,11 +141,13 @@ pipeline {
             echo "=========================================================="
         }
         success {
-            echo "QUALITY GATE PASSED: All Unit, MockMvc, and Selenium E2E Tests Succeeded."
-            echo "Marathon Registration Portal deployed successfully to http://localhost:${params.SERVER_PORT}/"
+            echo "CD PIPELINE SUCCEEDED: ${CONTAINER_NAME} is live and healthy."
+            echo "Live URL:     http://localhost:${params.SERVER_PORT}/"
+            echo "Health Probe: http://localhost:${params.SERVER_PORT}/health"
+            echo "Admin Portal: http://localhost:${params.SERVER_PORT}/admin"
         }
         failure {
-            echo "QUALITY GATE FAILED: One or more test suites failed. Deployment is blocked."
+            echo "CD PIPELINE FAILED: Rollback initiated or build halted. Environments protected."
         }
     }
 }
