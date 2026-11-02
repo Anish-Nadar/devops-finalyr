@@ -1,0 +1,115 @@
+---
+# ==============================================================================
+# Ansible Playbook: Marathon Registration Portal Infrastructure Provisioning
+# ==============================================================================
+- name: Configure Server Prerequisites and Provision Marathon Registration Portal
+  hosts: all
+  become: yes
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: 1. Ensure application group exists
+      ansible.builtin.group:
+        name: "{{ app_group }}"
+        state: present
+
+    - name: 2. Ensure non-root application user exists with no login shell
+      ansible.builtin.user:
+        name: "{{ app_user }}"
+        group: "{{ app_group }}"
+        shell: /sbin/nologin
+        create_home: no
+        state: present
+
+    - name: 3. Create application directory structure
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+      loop:
+        - "{{ app_home }}"
+        - "{{ config_dir }}"
+        - "{{ log_dir }}"
+        - "{{ data_dir }}"
+
+    - name: 4. Ensure Java 21 runtime is installed and verified
+      ansible.builtin.command:
+        cmd: java -version
+      register: java_version_check
+      changed_when: false
+      failed_when: "'21' not in java_version_check.stderr and '21' not in java_version_check.stdout"
+
+    - name: 5. Ensure Docker service is active and running
+      ansible.builtin.command:
+        cmd: docker info
+      register: docker_check
+      changed_when: false
+
+    - name: 6. Deploy production application configuration template
+      ansible.builtin.copy:
+        dest: "{{ config_dir }}/application-production.properties"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0644'
+        content: |
+          # Automated Production Configuration via Ansible
+          server.port={{ app_port }}
+          spring.application.name={{ app_name }}
+          marathon.portal.title=City Marathon 2026 - Global Championship Series
+          logging.file.name={{ log_dir }}/marathon.log
+          management.endpoints.web.exposure.include=health,info,metrics
+          management.endpoint.health.show-details=always
+
+    - name: 7. Securely deploy environment secrets file with restricted permissions
+      ansible.builtin.copy:
+        dest: "{{ config_dir }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0600'
+        content: |
+          SPRING_PROFILES_ACTIVE={{ deploy_environment }}
+          SERVER_PORT={{ app_port }}
+          JAVA_OPTS="{{ jvm_flags }}"
+          DB_USER={{ db_username }}
+          DB_PASSWORD={{ db_password }}
+          JWT_SECRET={{ jwt_secret_key }}
+
+    - name: 8. Ensure target Docker image is present
+      ansible.builtin.command:
+        cmd: docker inspect {{ docker_image }}
+      register: image_inspect
+      changed_when: false
+
+    - name: 9. Provision containerized microservice via Docker
+      ansible.builtin.command:
+        cmd: >
+          docker run -d
+          --name marathon-portal-prod
+          --restart unless-stopped
+          -p {{ app_port }}:8080
+          -e SPRING_PROFILES_ACTIVE={{ deploy_environment }}
+          {{ docker_image }}
+      register: docker_run_result
+      failed_when: false
+      changed_when: docker_run_result.rc == 0
+
+    - name: 10. Verify application health probe
+      ansible.builtin.uri:
+        url: "{{ healthcheck_url }}"
+        method: GET
+        status_code: 200
+        return_content: yes
+      register: health_result
+      until: health_result.status == 200
+      retries: "{{ healthcheck_retries }}"
+      delay: "{{ healthcheck_delay }}"
+
+    - name: 11. Assert health status is UP
+      ansible.builtin.assert:
+        that:
+          - "'UP' in health_result.content or health_result.json.status == 'UP'"
+        fail_msg: "Health check assertion failed! Status was not UP."
+        success_msg: "Marathon Registration Portal is healthy and operational via Ansible provisioning."
