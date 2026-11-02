@@ -142,3 +142,4 @@ The defect was contained to `defect/deliberate-test-failure` and resolved on `de
 - Deliberate Failure Verification Branch: `defect/deliberate-test-failure` (Pushed to GitHub)
 - Clean Integration Branch: `develop` (Pushed to GitHub)
 - Documentation: [docs/10_continuous_testing_in_jenkins.md](file:///C:/Users/Admin/Desktop/Projects/devops/docs/10_continuous_testing_in_jenkins.md)
+
