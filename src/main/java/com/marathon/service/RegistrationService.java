@@ -6,6 +6,7 @@ import com.marathon.model.RegistrationStatus;
 import com.marathon.repository.ParticipantRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,9 +18,11 @@ import java.util.stream.Collectors;
 public class RegistrationService {
 
     private final ParticipantRepository repository;
+    private final BibGeneratorService bibGeneratorService;
 
-    public RegistrationService(ParticipantRepository repository) {
+    public RegistrationService(ParticipantRepository repository, BibGeneratorService bibGeneratorService) {
         this.repository = repository;
+        this.bibGeneratorService = bibGeneratorService;
     }
 
     public Participant register(Participant participant) {
@@ -35,6 +38,12 @@ public class RegistrationService {
         // Check waiver
         if (!participant.isWaiverAccepted()) {
             throw new IllegalArgumentException("Medical and liability waiver must be accepted to register.");
+        }
+
+        // Check for duplicate active registration with the same email
+        Optional<Participant> existing = repository.findByEmail(participant.getEmail());
+        if (existing.isPresent() && existing.get().getStatus() != RegistrationStatus.REJECTED) {
+            throw new IllegalArgumentException("A registration with email " + participant.getEmail() + " already exists.");
         }
 
         // Generate unique internal ID and public Registration ID
@@ -54,6 +63,30 @@ public class RegistrationService {
         }
 
         participant.setStatus(RegistrationStatus.PENDING_APPROVAL);
+        return repository.save(participant);
+    }
+
+    public Participant approveParticipant(String id) {
+        Participant participant = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Participant not found with ID: " + id));
+
+        if (participant.getStatus() == RegistrationStatus.APPROVED && participant.getBibNumber() != null) {
+            return participant;
+        }
+
+        String bibNumber = bibGeneratorService.generateBibNumber(participant.getCategory());
+        participant.setBibNumber(bibNumber);
+        participant.setStatus(RegistrationStatus.APPROVED);
+        participant.setUpdatedAt(LocalDateTime.now());
+        return repository.save(participant);
+    }
+
+    public Participant rejectParticipant(String id) {
+        Participant participant = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Participant not found with ID: " + id));
+
+        participant.setStatus(RegistrationStatus.REJECTED);
+        participant.setUpdatedAt(LocalDateTime.now());
         return repository.save(participant);
     }
 
@@ -96,5 +129,9 @@ public class RegistrationService {
             counts.put(cat, repository.countByCategory(cat));
         }
         return counts;
+    }
+
+    public long getTotalCount() {
+        return repository.count();
     }
 }
