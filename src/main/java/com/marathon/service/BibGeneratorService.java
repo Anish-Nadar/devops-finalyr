@@ -29,3 +29,4 @@ public class BibGeneratorService {
         return (counter != null) ? counter.get() : 1001;
     }
 }
+
