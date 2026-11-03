@@ -113,3 +113,4 @@
           - "'UP' in health_result.content or health_result.json.status == 'UP'"
         fail_msg: "Health check assertion failed! Status was not UP."
         success_msg: "Marathon Registration Portal is healthy and operational via Ansible provisioning."
+
