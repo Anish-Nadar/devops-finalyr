@@ -14,6 +14,7 @@ pipeline {
         CONTAINER_NAME = "marathon-portal-${params.DEPLOY_ENV}"
         BUILD_TAG = "${env.BUILD_NUMBER ?: '1.0.0'}"
         JAVA_HOME = "C:\\Program Files\\BellSoft\\LibericaJDK-21"
+        PATH = "C:\\Users\\Admin\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;${env.PATH}"
     }
 
     stages {
@@ -93,6 +94,7 @@ pipeline {
                 echo "Stage 6: Building Multi-Stage Docker Container Image"
                 echo "=========================================================="
                 bat """
+                    set "PATH=C:\\Users\\Admin\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;%PATH%"
                     docker build -t ${IMAGE_NAME}:${BUILD_TAG} -t ${IMAGE_NAME}:${params.DEPLOY_ENV} -t ${IMAGE_NAME}:latest .
                     docker images ${IMAGE_NAME}
                 """
@@ -108,7 +110,8 @@ pipeline {
                 echo "Stage 7: Deploying Container ${CONTAINER_NAME} on Port ${params.SERVER_PORT}"
                 echo "=========================================================="
                 bat """
-                    docker stop ${CONTAINER_NAME} 2>nul || ver >nul
+                    set "PATH=C:\\Users\\Admin\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;%PATH%"
+                    docker rm -f marathon-app 2>nul || ver >nul
                     docker rm -f ${CONTAINER_NAME} 2>nul || ver >nul
                     docker run -d --name ${CONTAINER_NAME} -p ${params.SERVER_PORT}:8080 ${IMAGE_NAME}:${BUILD_TAG}
                     docker ps --filter name=${CONTAINER_NAME}
@@ -127,7 +130,8 @@ pipeline {
                 script {
                     echo "Checking container health at http://localhost:${params.SERVER_PORT}/health..."
                     bat """
-                        powershell -ExecutionPolicy Bypass -Command "\$ready=\$false; for(\$i=1;\$i -le 15;\$i++){ Start-Sleep -Seconds 2; try { \$h = Invoke-RestMethod -Uri 'http://localhost:${params.SERVER_PORT}/health' -TimeoutSec 2; if(\$h.status -eq 'UP'){ Write-Host 'Health probe confirmed UP!'; \$ready=\$true; break; } } catch { Write-Host 'Waiting for container ready (attempt '\$i'/15)...'; } }; if(-not \$ready){ Write-Host 'HEALTHCHECK FAILED: Triggering automated rollback...'; docker stop ${CONTAINER_NAME}; docker rm -f ${CONTAINER_NAME}; docker run -d --name ${CONTAINER_NAME} -p ${params.SERVER_PORT}:8080 ${IMAGE_NAME}:latest; exit 1; }"
+                        set "PATH=C:\\Users\\Admin\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin;%PATH%"
+                        powershell -ExecutionPolicy Bypass -Command "\$ready=\$false; for(\$i=1;\$i -le 15;\$i++){ Start-Sleep -Seconds 2; try { \$h = Invoke-RestMethod -Uri 'http://localhost:${params.SERVER_PORT}/health' -TimeoutSec 2; if(\$h.status -eq 'UP'){ Write-Host 'Health probe confirmed UP!'; \$ready=\$true; break; } } catch { Write-Host 'Waiting for container ready (attempt '\$i'/15)...'; } }; if(-not \$ready){ Write-Host 'HEALTHCHECK FAILED: Triggering automated rollback...'; docker rm -f ${CONTAINER_NAME}; docker run -d --name ${CONTAINER_NAME} -p ${params.SERVER_PORT}:8080 ${IMAGE_NAME}:latest; exit 1; }"
                     """
                 }
             }
