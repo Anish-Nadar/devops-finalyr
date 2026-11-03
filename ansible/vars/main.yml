@@ -24,3 +24,4 @@ healthcheck_delay: 3
 db_username: "marathon_admin"
 db_password: "vault_encrypted_supersecret_token_2026"
 jwt_secret_key: "vault_encrypted_marathon_jwt_signing_key_global"
+
